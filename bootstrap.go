@@ -12,14 +12,14 @@ import (
 	config "github.com/ipfs/go-ipfs-config"
 	logging "github.com/ipfs/go-log"
 	"github.com/jbenet/goprocess"
-	"github.com/jbenet/goprocess/context"
-	"github.com/jbenet/goprocess/periodic"
-	"github.com/libp2p/go-libp2p-host"
-	"github.com/libp2p/go-libp2p-loggables"
-	"github.com/libp2p/go-libp2p-net"
-	"github.com/libp2p/go-libp2p-peer"
-	"github.com/libp2p/go-libp2p-peerstore"
-	"github.com/libp2p/go-libp2p-routing"
+	goprocessctx "github.com/jbenet/goprocess/context"
+	periodicproc "github.com/jbenet/goprocess/periodic"
+	host "github.com/libp2p/go-libp2p-host"
+	loggables "github.com/libp2p/go-libp2p-loggables"
+	net "github.com/libp2p/go-libp2p-net"
+	peer "github.com/libp2p/go-libp2p-peer"
+	peerstore "github.com/libp2p/go-libp2p-peerstore"
+	routing "github.com/libp2p/go-libp2p-routing"
 )
 
 var log = logging.Logger("bootstrap")
@@ -73,7 +73,12 @@ func BootstrapConfigWithPeers(pis []peerstore.PeerInfo) BootstrapConfig {
 // check the number of open connections and -- if there are too few -- initiate
 // connections to well-known bootstrap peers. It also kicks off subsystem
 // bootstrapping (i.e. routing).
-func Bootstrap(id peer.ID, host host.Host, rt routing.IpfsRouting, cfg BootstrapConfig) (io.Closer, error) {
+func Bootstrap(
+	id peer.ID,
+	host host.Host,
+	rt routing.IpfsRouting,
+	cfg BootstrapConfig,
+) (io.Closer, error) {
 
 	// make a signal to wait for one bootstrap round to complete.
 	doneWithRound := make(chan struct{})
@@ -115,7 +120,11 @@ func Bootstrap(id peer.ID, host host.Host, rt routing.IpfsRouting, cfg Bootstrap
 	return proc, nil
 }
 
-func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) error {
+func bootstrapRound(
+	ctx context.Context,
+	host host.Host,
+	cfg BootstrapConfig,
+) error {
 
 	ctx, cancel := context.WithTimeout(ctx, cfg.ConnectionTimeout)
 	defer cancel()
@@ -128,8 +137,12 @@ func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) er
 	connected := host.Network().Peers()
 	if len(connected) >= cfg.MinPeerThreshold {
 		log.Event(ctx, "bootstrapSkip", id)
-		log.Debugf("%s core bootstrap skipped -- connected to %d (> %d) nodes",
-			id, len(connected), cfg.MinPeerThreshold)
+		log.Debugf(
+			"%s core bootstrap skipped -- connected to %d (> %d) nodes",
+			id,
+			len(connected),
+			cfg.MinPeerThreshold,
+		)
 		return nil
 	}
 	numToDial := cfg.MinPeerThreshold - len(connected)
@@ -144,7 +157,11 @@ func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) er
 
 	// if connected to all bootstrap peer candidates, exit
 	if len(notConnected) < 1 {
-		log.Debugf("%s no more bootstrap peers to create %d connections", id, numToDial)
+		log.Debugf(
+			"%s no more bootstrap peers to create %d connections",
+			id,
+			numToDial,
+		)
 		return ErrNotEnoughBootstrapPeers
 	}
 
@@ -156,7 +173,11 @@ func bootstrapRound(ctx context.Context, host host.Host, cfg BootstrapConfig) er
 	return bootstrapConnect(ctx, host, randSubset)
 }
 
-func bootstrapConnect(ctx context.Context, ph host.Host, peers []peerstore.PeerInfo) error {
+func bootstrapConnect(
+	ctx context.Context,
+	ph host.Host,
+	peers []peerstore.PeerInfo,
+) error {
 	if len(peers) < 1 {
 		return ErrNotEnoughBootstrapPeers
 	}
