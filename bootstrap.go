@@ -28,8 +28,7 @@ var log = logging.Logger("bootstrap")
 // peers to bootstrap correctly.
 var ErrNotEnoughBootstrapPeers = errors.New("not enough bootstrap peers to bootstrap")
 
-// BootstrapConfig specifies parameters used in an IpfsNode's network
-// bootstrapping process.
+// BootstrapConfig specifies parameters used in the network bootstrapping process.
 type BootstrapConfig struct {
 	// MinPeerThreshold governs whether to bootstrap more connections. If the
 	// node has less open connections than this number, it will open connections
@@ -69,7 +68,7 @@ func BootstrapConfigWithPeers(pis []peerstore.PeerInfo) BootstrapConfig {
 	return cfg
 }
 
-// Bootstrap kicks off IpfsNode bootstrapping. This function will periodically
+// Bootstrap kicks off bootstrapping. This function will periodically
 // check the number of open connections and -- if there are too few -- initiate
 // connections to well-known bootstrap peers. It also kicks off subsystem
 // bootstrapping (i.e. routing).
@@ -86,7 +85,10 @@ func Bootstrap(
 	if len(cfg.BootstrapPeers()) == 0 {
 		// We *need* to bootstrap but we have no bootstrap peers
 		// configured *at all*, inform the user.
-		log.Warning("no bootstrap nodes configured: go-ipfs may have difficulty connecting to the network")
+		log.Warning(
+			`no bootstrap nodes configured:
+                           may have difficulty connecting to the network"`,
+		)
 	}
 
 	// the periodic bootstrap function -- the connection supervisor
