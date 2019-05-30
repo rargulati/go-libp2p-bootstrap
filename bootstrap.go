@@ -28,8 +28,7 @@ var log = logging.Logger("bootstrap")
 // peers to bootstrap correctly.
 var ErrNotEnoughBootstrapPeers = errors.New("not enough bootstrap peers to bootstrap")
 
-// BootstrapConfig specifies parameters used in an IpfsNode's network
-// bootstrapping process.
+// BootstrapConfig specifies parameters used in the network bootstrapping process.
 type BootstrapConfig struct {
 	// MinPeerThreshold governs whether to bootstrap more connections. If the
 	// node has less open connections than this number, it will open connections
@@ -69,7 +68,7 @@ func BootstrapConfigWithPeers(pis []peerstore.PeerInfo) BootstrapConfig {
 	return cfg
 }
 
-// Bootstrap kicks off IpfsNode bootstrapping. This function will periodically
+// Bootstrap kicks off bootstrapping. This function will periodically
 // check the number of open connections and -- if there are too few -- initiate
 // connections to well-known bootstrap peers. It also kicks off subsystem
 // bootstrapping (i.e. routing).
@@ -79,14 +78,16 @@ func Bootstrap(
 	rt routing.IpfsRouting,
 	cfg BootstrapConfig,
 ) (io.Closer, error) {
-
 	// make a signal to wait for one bootstrap round to complete.
 	doneWithRound := make(chan struct{})
 
 	if len(cfg.BootstrapPeers()) == 0 {
 		// We *need* to bootstrap but we have no bootstrap peers
 		// configured *at all*, inform the user.
-		log.Warning("no bootstrap nodes configured: go-ipfs may have difficulty connecting to the network")
+		fmt.Println(
+			"no bootstrap nodes configured: may have difficulty " +
+				"connecting to the network",
+		)
 	}
 
 	// the periodic bootstrap function -- the connection supervisor
@@ -125,11 +126,10 @@ func bootstrapRound(
 	host host.Host,
 	cfg BootstrapConfig,
 ) error {
-
 	ctx, cancel := context.WithTimeout(ctx, cfg.ConnectionTimeout)
 	defer cancel()
-	id := host.ID()
 
+	id := host.ID()
 	// get bootstrap peers from config. retrieving them here makes
 	// sure we remain observant of changes to client configuration.
 	peers := cfg.BootstrapPeers()
@@ -199,6 +199,7 @@ func bootstrapConnect(
 
 			ph.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 			if err := ph.Connect(ctx, p); err != nil {
+				fmt.Printf("Connection to bootstrap peer [%v] failed\n", p.ID)
 				log.Event(ctx, "bootstrapDialFailed", p.ID)
 				log.Debugf("failed to bootstrap with %v: %s", p.ID, err)
 				errs <- err
