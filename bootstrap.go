@@ -78,7 +78,6 @@ func Bootstrap(
 	rt routing.IpfsRouting,
 	cfg BootstrapConfig,
 ) (io.Closer, error) {
-
 	// make a signal to wait for one bootstrap round to complete.
 	doneWithRound := make(chan struct{})
 
@@ -127,11 +126,10 @@ func bootstrapRound(
 	host host.Host,
 	cfg BootstrapConfig,
 ) error {
-
 	ctx, cancel := context.WithTimeout(ctx, cfg.ConnectionTimeout)
 	defer cancel()
-	id := host.ID()
 
+	id := host.ID()
 	// get bootstrap peers from config. retrieving them here makes
 	// sure we remain observant of changes to client configuration.
 	peers := cfg.BootstrapPeers()
