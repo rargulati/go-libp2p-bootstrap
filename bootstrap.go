@@ -85,8 +85,8 @@ func Bootstrap(
 		// We *need* to bootstrap but we have no bootstrap peers
 		// configured *at all*, inform the user.
 		fmt.Println(
-			`no bootstrap nodes configured:
-                           may have difficulty connecting to the network"`,
+			"no bootstrap nodes configured: may have difficulty " +
+				"connecting to the network",
 		)
 	}
 
@@ -199,6 +199,7 @@ func bootstrapConnect(
 
 			ph.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 			if err := ph.Connect(ctx, p); err != nil {
+				fmt.Printf("Connection to bootstrap peer [%v] failed\n", p.ID)
 				log.Event(ctx, "bootstrapDialFailed", p.ID)
 				log.Debugf("failed to bootstrap with %v: %s", p.ID, err)
 				errs <- err
