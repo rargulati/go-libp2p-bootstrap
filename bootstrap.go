@@ -84,7 +84,7 @@ func Bootstrap(
 	if len(cfg.BootstrapPeers()) == 0 {
 		// We *need* to bootstrap but we have no bootstrap peers
 		// configured *at all*, inform the user.
-		log.Warning(
+		fmt.Println(
 			`no bootstrap nodes configured:
                            may have difficulty connecting to the network"`,
 		)
