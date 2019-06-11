@@ -199,12 +199,13 @@ func bootstrapConnect(
 
 			ph.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 			if err := ph.Connect(ctx, p); err != nil {
-				fmt.Printf("Connection to bootstrap peer [%v] failed\n", p.ID)
+				fmt.Printf("Connection to bootstrap peer [%v] failed. Retrying...\n", p.ID)
 				log.Event(ctx, "bootstrapDialFailed", p.ID)
 				log.Debugf("failed to bootstrap with %v: %s", p.ID, err)
 				errs <- err
 				return
 			}
+			fmt.Printf("Established connection with bootstrap peer [%v]\n", p.ID)
 			log.Event(ctx, "bootstrapDialSuccess", p.ID)
 			log.Infof("bootstrapped with %v", p.ID)
 		}(p)
