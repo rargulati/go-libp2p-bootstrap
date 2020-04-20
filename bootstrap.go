@@ -111,6 +111,16 @@ func bootstrapRound(
 	defer cancel()
 
 	id := host.ID()
+
+	connectedPeers := host.Network().Peers()
+
+	log.Debugf(
+		"%s bootstrap round start; currently connected to [%v] peers: %v\n",
+		id,
+		len(connectedPeers),
+		connectedPeers,
+	)
+
 	// get bootstrap peers from config. retrieving them here makes
 	// sure we remain observant of changes to client configuration.
 	peers := cfg.BootstrapPeers()
@@ -118,7 +128,7 @@ func bootstrapRound(
 	if len(peers) == 0 {
 		log.Event(ctx, "bootstrapSkip", id)
 		log.Debugf(
-			"%s bootstrap round skipped -- no bootstrap peers in config",
+			"%s bootstrap round skipped; no bootstrap peers in config",
 			id,
 		)
 		return nil
@@ -136,7 +146,7 @@ func bootstrapRound(
 	if len(notConnected) < 1 {
 		log.Event(ctx, "bootstrapSkip", id)
 		log.Debugf(
-			"%s bootstrap round skipped -- connected to all bootstrap nodes",
+			"%s bootstrap round skipped; connected to all bootstrap nodes",
 			id,
 		)
 		return nil
