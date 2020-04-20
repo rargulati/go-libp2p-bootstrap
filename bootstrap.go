@@ -115,7 +115,7 @@ func bootstrapRound(
 	connectedPeers := host.Network().Peers()
 
 	log.Debugf(
-		"%s bootstrap round start; currently connected to [%v] peers: %v\n",
+		"%s bootstrap round started; currently connected to [%v] peers: %v\n",
 		id,
 		len(connectedPeers),
 		connectedPeers,
