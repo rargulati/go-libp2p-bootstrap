@@ -146,7 +146,7 @@ func bootstrapRound(
 	if len(notConnected) < 1 {
 		log.Event(ctx, "bootstrapSkip", id)
 		log.Debugf(
-			"%s bootstrap round skipped; connected to all bootstrap nodes",
+			"%s bootstrap round skipped; connected to all bootstrap peers from config",
 			id,
 		)
 		return nil
