@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -30,14 +29,6 @@ var ErrNotEnoughBootstrapPeers = errors.New("not enough bootstrap peers to boots
 
 // BootstrapConfig specifies parameters used in the network bootstrapping process.
 type BootstrapConfig struct {
-	// MinPeerThreshold governs whether to bootstrap more connections. If the
-	// node has less open connections than this number, it will open connections
-	// to the bootstrap nodes. From there, the routing system should be able
-	// to use the connections to the bootstrap nodes to connect to even more
-	// peers. Routing systems like the IpfsDHT do so in their own Bootstrap
-	// process, which issues random queries to find more peers.
-	MinPeerThreshold int
-
 	// Period governs the periodic interval at which the node will
 	// attempt to bootstrap. The bootstrap process is not very expensive, so
 	// this threshold can afford to be small (<=30s).
@@ -55,7 +46,6 @@ type BootstrapConfig struct {
 
 // DefaultBootstrapConfig specifies default sane parameters for bootstrapping.
 var DefaultBootstrapConfig = BootstrapConfig{
-	MinPeerThreshold:  4,
 	Period:            30 * time.Second,
 	ConnectionTimeout: (30 * time.Second) / 3, // Perod / 3
 }
@@ -80,15 +70,6 @@ func Bootstrap(
 ) (io.Closer, error) {
 	// make a signal to wait for one bootstrap round to complete.
 	doneWithRound := make(chan struct{})
-
-	if len(cfg.BootstrapPeers()) == 0 {
-		// We *need* to bootstrap but we have no bootstrap peers
-		// configured *at all*, inform the user.
-		fmt.Println(
-			"no bootstrap nodes configured: may have difficulty " +
-				"connecting to the network",
-		)
-	}
 
 	// the periodic bootstrap function -- the connection supervisor
 	periodic := func(worker goprocess.Process) {
@@ -133,19 +114,15 @@ func bootstrapRound(
 	// get bootstrap peers from config. retrieving them here makes
 	// sure we remain observant of changes to client configuration.
 	peers := cfg.BootstrapPeers()
-	// determine how many bootstrap connections to open
-	connected := host.Network().Peers()
-	if len(connected) >= cfg.MinPeerThreshold {
+
+	if len(peers) == 0 {
 		log.Event(ctx, "bootstrapSkip", id)
 		log.Debugf(
-			"%s core bootstrap skipped -- connected to %d (> %d) nodes",
+			"%s bootstrap round skipped -- no bootstrap peers in config",
 			id,
-			len(connected),
-			cfg.MinPeerThreshold,
 		)
 		return nil
 	}
-	numToDial := cfg.MinPeerThreshold - len(connected)
 
 	// filter out bootstrap nodes we are already connected to
 	var notConnected []peerstore.PeerInfo
@@ -157,20 +134,17 @@ func bootstrapRound(
 
 	// if connected to all bootstrap peer candidates, exit
 	if len(notConnected) < 1 {
+		log.Event(ctx, "bootstrapSkip", id)
 		log.Debugf(
-			"%s no more bootstrap peers to create %d connections",
+			"%s bootstrap round skipped -- connected to all bootstrap nodes",
 			id,
-			numToDial,
 		)
-		return ErrNotEnoughBootstrapPeers
+		return nil
 	}
 
-	// connect to a random susbset of bootstrap candidates
-	randSubset := randomSubsetOfPeers(notConnected, numToDial)
-
 	defer log.EventBegin(ctx, "bootstrapStart", id).Done()
-	log.Debugf("%s bootstrapping to %d nodes: %s", id, numToDial, randSubset)
-	return bootstrapConnect(ctx, host, randSubset)
+	log.Debugf("%s bootstrapping to nodes: %s", id, notConnected)
+	return bootstrapConnect(ctx, host, notConnected)
 }
 
 func bootstrapConnect(
@@ -226,18 +200,6 @@ func bootstrapConnect(
 		return fmt.Errorf("failed to bootstrap. %s", err)
 	}
 	return nil
-}
-
-func randomSubsetOfPeers(in []peerstore.PeerInfo, max int) []peerstore.PeerInfo {
-	if max > len(in) {
-		max = len(in)
-	}
-
-	out := make([]peerstore.PeerInfo, max)
-	for i, val := range rand.Perm(len(in))[:max] {
-		out[i] = in[val]
-	}
-	return out
 }
 
 type Peers []config.BootstrapPeer
