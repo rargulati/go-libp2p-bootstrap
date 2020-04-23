@@ -9,7 +9,7 @@ import (
 	"time"
 
 	config "github.com/ipfs/go-ipfs-config"
-	logging "github.com/ipfs/go-log/v2"
+	logging "github.com/ipfs/go-log"
 	"github.com/jbenet/goprocess"
 	goprocessctx "github.com/jbenet/goprocess/context"
 	periodicproc "github.com/jbenet/goprocess/periodic"
@@ -75,7 +75,7 @@ func Bootstrap(
 		ctx := goprocessctx.OnClosingContext(worker)
 
 		if err := bootstrapRound(ctx, host, cfg); err != nil {
-			logger.Warnf("bootstrap round error: [%v]", err)
+			logger.Warningf("bootstrap round error: [%v]", err)
 		}
 
 		<-doneWithRound
@@ -167,7 +167,7 @@ func bootstrapConnect(
 			ph.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 
 			if err := ph.Connect(ctx, p); err != nil {
-				logger.Warnf(
+				logger.Warningf(
 					"could not establish connection with bootstrap peer [%v]: [%v]",
 					p.ID,
 					err,
