@@ -14,14 +14,13 @@ import (
 	goprocessctx "github.com/jbenet/goprocess/context"
 	periodicproc "github.com/jbenet/goprocess/periodic"
 	host "github.com/libp2p/go-libp2p-host"
-	loggables "github.com/libp2p/go-libp2p-loggables"
 	net "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	peerstore "github.com/libp2p/go-libp2p-peerstore"
 	routing "github.com/libp2p/go-libp2p-routing"
 )
 
-var log = logging.Logger("bootstrap")
+var logger = logging.Logger("bootstrap")
 
 // ErrNotEnoughBootstrapPeers signals that we do not have enough bootstrap
 // peers to bootstrap correctly.
@@ -74,11 +73,9 @@ func Bootstrap(
 	// the periodic bootstrap function -- the connection supervisor
 	periodic := func(worker goprocess.Process) {
 		ctx := goprocessctx.OnClosingContext(worker)
-		defer log.EventBegin(ctx, "periodicBootstrap", id).Done()
 
 		if err := bootstrapRound(ctx, host, cfg); err != nil {
-			log.Event(ctx, "bootstrapError", id, loggables.Error(err))
-			log.Debugf("%s bootstrap error: %s", id, err)
+			logger.Warningf("bootstrap round error: [%v]", err)
 		}
 
 		<-doneWithRound
@@ -110,27 +107,14 @@ func bootstrapRound(
 	ctx, cancel := context.WithTimeout(ctx, cfg.ConnectionTimeout)
 	defer cancel()
 
-	id := host.ID()
-
-	connectedPeers := host.Network().Peers()
-
-	log.Debugf(
-		"%s bootstrap round started; currently connected to [%v] peers: %v\n",
-		id,
-		len(connectedPeers),
-		connectedPeers,
-	)
+	logger.Debugf("starting bootstrap round")
 
 	// get bootstrap peers from config. retrieving them here makes
 	// sure we remain observant of changes to client configuration.
 	peers := cfg.BootstrapPeers()
 
 	if len(peers) == 0 {
-		log.Event(ctx, "bootstrapSkip", id)
-		log.Debugf(
-			"%s bootstrap round skipped; no bootstrap peers in config",
-			id,
-		)
+		logger.Debugf("bootstrap round skipped; no bootstrap peers in config")
 		return nil
 	}
 
@@ -144,16 +128,15 @@ func bootstrapRound(
 
 	// if connected to all bootstrap peer candidates, exit
 	if len(notConnected) < 1 {
-		log.Event(ctx, "bootstrapSkip", id)
-		log.Debugf(
-			"%s bootstrap round skipped; connected to all bootstrap peers from config",
-			id,
+		logger.Debugf(
+			"bootstrap round skipped; " +
+				"connected to all bootstrap peers from config",
 		)
 		return nil
 	}
 
-	defer log.EventBegin(ctx, "bootstrapStart", id).Done()
-	log.Debugf("%s bootstrapping to nodes: %s", id, notConnected)
+	logger.Debugf("bootstrapping to nodes: [%v]", notConnected)
+
 	return bootstrapConnect(ctx, host, notConnected)
 }
 
@@ -178,20 +161,22 @@ func bootstrapConnect(
 		wg.Add(1)
 		go func(p peerstore.PeerInfo) {
 			defer wg.Done()
-			defer log.EventBegin(ctx, "bootstrapDial", ph.ID(), p.ID).Done()
-			log.Debugf("%s bootstrapping to %s", ph.ID(), p.ID)
+
+			logger.Debugf("trying to establish connection with bootstrap peer [%v]", p.ID)
 
 			ph.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
+
 			if err := ph.Connect(ctx, p); err != nil {
-				fmt.Printf("Connection to bootstrap peer [%v] failed. Retrying...\n", p.ID)
-				log.Event(ctx, "bootstrapDialFailed", p.ID)
-				log.Debugf("failed to bootstrap with %v: %s", p.ID, err)
+				logger.Warningf(
+					"could not establish connection with bootstrap peer [%v]: [%v]",
+					p.ID,
+					err,
+				)
 				errs <- err
 				return
 			}
-			fmt.Printf("Established connection with bootstrap peer [%v]\n", p.ID)
-			log.Event(ctx, "bootstrapDialSuccess", p.ID)
-			log.Infof("bootstrapped with %v", p.ID)
+
+			logger.Debugf("established connection with bootstrap peer [%v]", p.ID)
 		}(p)
 	}
 	wg.Wait()
@@ -207,7 +192,7 @@ func bootstrapConnect(
 		}
 	}
 	if count == len(peers) {
-		return fmt.Errorf("failed to bootstrap. %s", err)
+		return fmt.Errorf("all bootstrap attempts failed")
 	}
 	return nil
 }
