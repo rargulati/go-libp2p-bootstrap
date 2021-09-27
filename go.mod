@@ -1,15 +1,13 @@
 module github.com/keep-network/go-libp2p-bootstrap
 
-go 1.12
+go 1.16
 
 require (
-	github.com/ipfs/go-ipfs-config v0.0.4
-	github.com/ipfs/go-log v0.0.1
-	github.com/jbenet/goprocess v0.1.3
-	github.com/libp2p/go-libp2p-host v0.1.0
-	github.com/libp2p/go-libp2p-net v0.1.0
-	github.com/libp2p/go-libp2p-peer v0.2.0
-	github.com/libp2p/go-libp2p-peerstore v0.1.0
-	github.com/libp2p/go-libp2p-routing v0.0.1
-	github.com/libp2p/go-testutil v0.1.0
+	github.com/ipfs/go-ipfs-config v0.16.0
+	github.com/ipfs/go-log v1.0.5
+	github.com/jbenet/goprocess v0.1.4
+	github.com/kr/pretty v0.2.0 // indirect
+	github.com/libp2p/go-libp2p-core v0.9.0
+	github.com/multiformats/go-multiaddr v0.3.3 // indirect
+	github.com/stretchr/testify v1.7.0 // indirect
 )
